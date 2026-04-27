@@ -6,15 +6,16 @@ import (
 	"os"
 
 	"github.com/doron-cohen/klee/config"
+	"github.com/doron-cohen/klee/version"
 	"github.com/urfave/cli/v3"
 )
 
 // ConfigOptions controls config loading.
-type ConfigOptions struct {
+type ConfigOptions[T any] struct {
 	// FlagArgs is typically os.Args — scanned for --config before full parse.
 	FlagArgs []string
-	// AfterLoad is called after config is loaded, with full CLI flag access.
-	AfterLoad func(cmd *cli.Command) error
+	// AfterLoad is called after config is loaded, with typed config and full CLI flag access.
+	AfterLoad func(cfg *T, cmd *cli.Command) error
 }
 
 // App is a klee application with typed config T.
@@ -24,22 +25,28 @@ type App[T any] struct {
 	commands  []*cli.Command
 	cfg       *T
 	afterLoad func(cmd *cli.Command) error
+	debug     bool
 }
 
 // New creates a new App.
-func New[T any](name, version string, commands []*cli.Command) *App[T] {
+func New[T any](name, ver string, commands []*cli.Command) *App[T] {
 	return &App[T]{
 		name:     name,
-		version:  version,
+		version:  ver,
 		commands: commands,
 		cfg:      new(T),
 	}
 }
 
 // LoadConfig loads configuration from files and environment variables.
-func (a *App[T]) LoadConfig(opts ConfigOptions) error {
+func (a *App[T]) LoadConfig(opts ConfigOptions[T]) error {
 	projectPath := scanConfigFlag(opts.FlagArgs)
-	a.afterLoad = opts.AfterLoad
+
+	if opts.AfterLoad != nil {
+		a.afterLoad = func(cmd *cli.Command) error {
+			return opts.AfterLoad(a.cfg, cmd)
+		}
+	}
 
 	return config.Load(a.cfg, config.Options{
 		AppName:     a.name,
@@ -53,15 +60,14 @@ func (a *App[T]) Run(ctx context.Context, args []string) int {
 	defer cancel()
 
 	app := &cli.Command{
-		Name:    a.name,
-		Version: a.version,
-		Flags:   globalFlags,
-		Before: a.before,
+		Name:     a.name,
+		Flags:    globalFlags,
+		Before:   a.before,
 		Commands: append(a.commands, versionCommand(a.version)),
 	}
 
 	if err := app.Run(ctx, args); err != nil {
-		fmt.Fprintln(os.Stderr, renderError(err, false))
+		fmt.Fprintln(os.Stderr, renderError(err, a.debug))
 		return exitCodeForError(err)
 	}
 
@@ -69,14 +75,14 @@ func (a *App[T]) Run(ctx context.Context, args []string) int {
 }
 
 func (a *App[T]) before(ctx context.Context, cmd *cli.Command) (context.Context, error) {
-	flags := RunFlags{
-		Debug:   cmd.Bool("debug"),
+	a.debug = cmd.Bool("debug")
+
+	ctx = withRunFlags(ctx, RunFlags{
+		Debug:   a.debug,
 		Quiet:   cmd.Bool("quiet"),
 		JSON:    cmd.Bool("json"),
 		NoColor: cmd.Bool("no-color"),
-	}
-
-	ctx = withRunFlags(ctx, flags)
+	})
 	ctx = withConfig(ctx, a.cfg)
 
 	if a.afterLoad != nil {
@@ -107,7 +113,7 @@ func versionCommand(ver string) *cli.Command {
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			if cmd.Bool("short") {
-				fmt.Println(ver)
+				fmt.Println(version.Version)
 			} else {
 				fmt.Println(ver)
 			}
