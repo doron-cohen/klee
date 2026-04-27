@@ -127,6 +127,27 @@ func TestRunFlags(t *testing.T) {
 	}
 }
 
+// --- logging ---
+
+func TestLogCommandWritesToStderr(t *testing.T) {
+	result := run(t, "log")
+	result.ExitCode.Equals(t, 0)
+	result.Stderr.Contains(t, "log command ran")
+}
+
+func TestLogLevelFlagFiltersOutput(t *testing.T) {
+	// Default level is info, so info messages appear
+	result := run(t, "log")
+	result.ExitCode.Equals(t, 0)
+	result.Stderr.Contains(t, "log command ran")
+}
+
+func TestLogFormatFlagJSON(t *testing.T) {
+	result := run(t, "--log-format", "json", "log")
+	result.ExitCode.Equals(t, 0)
+	result.Stderr.Contains(t, `"msg":"log command ran"`)
+}
+
 // --- error rendering ---
 
 func TestErrors(t *testing.T) {

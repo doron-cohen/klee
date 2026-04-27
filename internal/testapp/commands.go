@@ -7,6 +7,7 @@ import (
 
 	"github.com/doron-cohen/klee"
 	kleerrors "github.com/doron-cohen/klee/errors"
+	kleelog "github.com/doron-cohen/klee/log"
 	"github.com/urfave/cli/v3"
 )
 
@@ -29,6 +30,16 @@ var flagsCmd = &cli.Command{
 		rf := klee.GetRunFlags(ctx)
 		fmt.Fprintf(os.Stdout, "debug=%v quiet=%v json=%v no-color=%v\n",
 			rf.Debug, rf.Quiet, rf.JSON, rf.NoColor)
+		return nil
+	},
+}
+
+// logCmd logs a message at info level using the context logger.
+var logCmd = &cli.Command{
+	Name:  "log",
+	Usage: "log a message via the context logger",
+	Action: func(ctx context.Context, cmd *cli.Command) error {
+		kleelog.FromCtx(ctx).Info("log command ran", "key", "value")
 		return nil
 	},
 }

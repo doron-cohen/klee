@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/doron-cohen/klee/config"
+	kleelog "github.com/doron-cohen/klee/log"
 	"github.com/doron-cohen/klee/version"
 	"github.com/urfave/cli/v3"
 )
@@ -84,6 +85,25 @@ func (a *App[T]) before(ctx context.Context, cmd *cli.Command) (context.Context,
 		NoColor: cmd.Bool("no-color"),
 	})
 	ctx = withConfig(ctx, a.cfg)
+
+	if provider, ok := any(a.cfg).(kleelog.Provider); ok {
+		logCfg := provider.LogConfig()
+		if level := cmd.String("log-level"); level != "" {
+			logCfg.Console.Level = level
+			logCfg.File.Level = level
+		}
+		if format := cmd.String("log-format"); format != "" {
+			logCfg.Console.Format = format
+		}
+		var err error
+		ctx, _, err = kleelog.Setup(ctx, logCfg, kleelog.SetupOptions{
+			AppName: a.name,
+			NoColor: cmd.Bool("no-color"),
+		})
+		if err != nil {
+			return ctx, err
+		}
+	}
 
 	if a.afterLoad != nil {
 		return ctx, a.afterLoad(cmd)
