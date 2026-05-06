@@ -148,6 +148,38 @@ func TestLogFormatFlagJSON(t *testing.T) {
 	result.Stderr.Contains(t, `"msg":"log command ran"`)
 }
 
+// --- output messages ---
+
+func TestOutputMessages(t *testing.T) {
+	tests := []struct {
+		name        string
+		args        []string
+		wantErr     string
+		wantErrEmpty bool
+	}{
+		{"success shown", []string{"msg", "success"}, "success message", false},
+		{"warn shown", []string{"msg", "warn"}, "warn message", false},
+		{"error shown", []string{"msg", "error"}, "error message", false},
+		{"hint shown", []string{"msg", "hint"}, "hint message", false},
+		{"warn suppressed quiet", []string{"--quiet", "msg", "warn"}, "", true},
+		{"hint suppressed quiet", []string{"--quiet", "msg", "hint"}, "", true},
+		{"success shown quiet", []string{"--quiet", "msg", "success"}, "success message", false},
+		{"error shown quiet", []string{"--quiet", "msg", "error"}, "error message", false},
+		{"all suppressed json", []string{"--json", "msg", "success"}, "", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := run(t, tt.args...)
+			result.ExitCode.Equals(t, 0)
+			if tt.wantErrEmpty {
+				result.Stderr.Empty(t)
+			} else {
+				result.Stderr.Contains(t, tt.wantErr)
+			}
+		})
+	}
+}
+
 // --- error rendering ---
 
 func TestErrors(t *testing.T) {

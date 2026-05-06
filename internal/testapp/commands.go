@@ -8,6 +8,7 @@ import (
 	"github.com/doron-cohen/klee"
 	kleerrors "github.com/doron-cohen/klee/errors"
 	kleelog "github.com/doron-cohen/klee/log"
+	"github.com/doron-cohen/klee/output"
 	"github.com/urfave/cli/v3"
 )
 
@@ -41,6 +42,42 @@ var logCmd = &cli.Command{
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		kleelog.FromCtx(ctx).Info("log command ran", "key", "value")
 		return nil
+	},
+}
+
+// msgCmd exercises all output message types.
+var msgCmd = &cli.Command{
+	Name:  "msg",
+	Usage: "print a message via output package",
+	Commands: []*cli.Command{
+		{
+			Name: "success",
+			Action: func(ctx context.Context, cmd *cli.Command) error {
+				output.FromCtx(ctx).Success("success message")
+				return nil
+			},
+		},
+		{
+			Name: "warn",
+			Action: func(ctx context.Context, cmd *cli.Command) error {
+				output.FromCtx(ctx).Warn("warn message")
+				return nil
+			},
+		},
+		{
+			Name: "error",
+			Action: func(ctx context.Context, cmd *cli.Command) error {
+				output.FromCtx(ctx).Error("error message")
+				return nil
+			},
+		},
+		{
+			Name: "hint",
+			Action: func(ctx context.Context, cmd *cli.Command) error {
+				output.FromCtx(ctx).Hint("hint message")
+				return nil
+			},
+		},
 	},
 }
 

@@ -27,5 +27,6 @@ func NewApp() *klee.App[Config] {
 		flagsCmd,
 		failCmd,
 		logCmd,
+		msgCmd,
 	})
 }
