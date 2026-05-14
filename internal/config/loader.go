@@ -25,8 +25,9 @@ func loadFile(path string, dest any) error {
 	return nil
 }
 
-// applyEnv sets struct fields from environment variables based on fieldInfo.
-func applyEnv(infos []fieldInfo, dest reflect.Value) error {
+// applyEnv sets struct fields from environment variables.
+// Real env vars take precedence; dotEnv fills in keys not present in the process environment.
+func applyEnv(infos []fieldInfo, dest reflect.Value, dotEnv map[string]string) error {
 	if dest.Kind() == reflect.Ptr {
 		dest = dest.Elem()
 	}
@@ -35,6 +36,9 @@ func applyEnv(infos []fieldInfo, dest reflect.Value) error {
 			continue
 		}
 		val, ok := os.LookupEnv(info.EnvKey)
+		if !ok {
+			val, ok = dotEnv[info.EnvKey]
+		}
 		if !ok {
 			continue
 		}
@@ -47,7 +51,8 @@ func applyEnv(infos []fieldInfo, dest reflect.Value) error {
 }
 
 // applyDefaults sets zero-value fields to their declared defaults.
-func applyDefaults(infos []fieldInfo, dest reflect.Value) error {
+// Fields explicitly set via environment variables or dotEnv are left alone even if zero.
+func applyDefaults(infos []fieldInfo, dest reflect.Value, dotEnv map[string]string) error {
 	if dest.Kind() == reflect.Ptr {
 		dest = dest.Elem()
 	}
@@ -58,6 +63,14 @@ func applyDefaults(infos []fieldInfo, dest reflect.Value) error {
 		field := dest.FieldByIndex(info.Index)
 		if !field.IsZero() {
 			continue
+		}
+		if info.EnvKey != "" {
+			if _, ok := os.LookupEnv(info.EnvKey); ok {
+				continue
+			}
+			if _, ok := dotEnv[info.EnvKey]; ok {
+				continue
+			}
 		}
 		if err := setField(field, info.Default); err != nil {
 			return fmt.Errorf("default for field: %w", err)

@@ -17,6 +17,9 @@ type ConfigOptions[T any] struct {
 	FlagArgs []string
 	// AfterLoad is called after config is loaded, with typed config and full CLI flag access.
 	AfterLoad func(cfg *T, cmd *cli.Command) error
+	// DotEnvFiles are .env files to load KEY=VALUE pairs from.
+	// Real environment variables take precedence over values in these files.
+	DotEnvFiles []string
 }
 
 // App is a klee application with typed config T.
@@ -52,6 +55,7 @@ func (a *App[T]) LoadConfig(opts ConfigOptions[T]) error {
 	return config.Load(a.cfg, config.Options{
 		AppName:     a.name,
 		ProjectPath: projectPath,
+		DotEnvFiles: opts.DotEnvFiles,
 	})
 }
 

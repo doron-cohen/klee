@@ -18,6 +18,9 @@ type Options struct {
 	// Filename is the config filename used under XDG dirs.
 	// Defaults to "config.yaml".
 	Filename string
+	// DotEnvFiles are .env files to load KEY=VALUE pairs from.
+	// Real environment variables take precedence over values in these files.
+	DotEnvFiles []string
 }
 
 // Load populates dest from config files and environment variables.
@@ -43,7 +46,8 @@ func Load(dest any, opts Options) error {
 	}
 
 	return internal.Merge(internal.MergeOptions{
-		Paths: paths,
-		Dest:  dest,
+		Paths:       paths,
+		DotEnvFiles: opts.DotEnvFiles,
+		Dest:        dest,
 	})
 }

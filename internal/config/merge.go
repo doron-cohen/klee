@@ -9,6 +9,10 @@ import (
 type MergeOptions struct {
 	// Paths in order of lowest to highest precedence (system → user → project).
 	Paths []string
+	// DotEnvFiles are .env files parsed for KEY=VALUE pairs.
+	// Real environment variables take precedence over dotenv values.
+	// Later files win for duplicate keys.
+	DotEnvFiles []string
 	// Dest is a pointer to the config struct to populate.
 	Dest any
 }
@@ -30,11 +34,16 @@ func Merge(opts MergeOptions) error {
 		}
 	}
 
-	if err := applyEnv(infos, v); err != nil {
+	dotEnv, err := parseDotEnvFiles(opts.DotEnvFiles)
+	if err != nil {
 		return err
 	}
 
-	if err := applyDefaults(infos, v); err != nil {
+	if err := applyEnv(infos, v, dotEnv); err != nil {
+		return err
+	}
+
+	if err := applyDefaults(infos, v, dotEnv); err != nil {
 		return err
 	}
 
