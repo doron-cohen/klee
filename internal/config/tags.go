@@ -1,9 +1,12 @@
 package config
 
 import (
+	"encoding"
 	"reflect"
 	"strings"
 )
+
+var textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
 
 type fieldInfo struct {
 	Index      []int
@@ -28,8 +31,11 @@ func parseFields(t reflect.Type, indexPrefix []int) []fieldInfo {
 		index := append(append([]int{}, indexPrefix...), i)
 
 		if f.Anonymous || f.Type.Kind() == reflect.Struct {
-			fields = append(fields, parseFields(f.Type, index)...)
-			continue
+			// Types that handle their own text loading are treated as leaf fields.
+			if !reflect.PointerTo(f.Type).Implements(textUnmarshalerType) {
+				fields = append(fields, parseFields(f.Type, index)...)
+				continue
+			}
 		}
 
 		info := fieldInfo{

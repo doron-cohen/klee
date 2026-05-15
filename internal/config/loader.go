@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding"
 	"fmt"
 	"os"
 	"reflect"
@@ -80,6 +81,9 @@ func applyDefaults(infos []fieldInfo, dest reflect.Value, dotEnv map[string]stri
 }
 
 func setField(field reflect.Value, raw string) error {
+	if tu, ok := field.Addr().Interface().(encoding.TextUnmarshaler); ok {
+		return tu.UnmarshalText([]byte(raw))
+	}
 	switch field.Kind() {
 	case reflect.String:
 		field.SetString(raw)
