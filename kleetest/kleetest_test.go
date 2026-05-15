@@ -18,8 +18,8 @@ type fakeApp struct {
 }
 
 func (f *fakeApp) Run(_ context.Context, _ []string) int {
-	fmt.Fprint(os.Stdout, f.stdout)
-	fmt.Fprint(os.Stderr, f.stderr)
+	_, _ = fmt.Fprint(os.Stdout, f.stdout)
+	_, _ = fmt.Fprint(os.Stderr, f.stderr)
 	return f.exitCode
 }
 

@@ -18,7 +18,7 @@ var echoCmd = &cli.Command{
 	Usage: "print config values",
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		cfg := klee.Config[Config](ctx)
-		fmt.Fprintf(os.Stdout, "host=%s port=%d\n", cfg.Host, cfg.Port)
+		_, _ = fmt.Fprintf(os.Stdout, "host=%s port=%d\n", cfg.Host, cfg.Port)
 		return nil
 	},
 }
@@ -29,8 +29,8 @@ var flagsCmd = &cli.Command{
 	Usage: "print run flag values",
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		rf := klee.GetRunFlags(ctx)
-		fmt.Fprintf(os.Stdout, "debug=%v quiet=%v json=%v no-color=%v\n",
-			rf.Debug, rf.Quiet, rf.JSON, rf.NoColor)
+		_, _ = fmt.Fprintf(os.Stdout, "debug=%v quiet=%v json=%v no-color=%v\n",
+				rf.Debug, rf.Quiet, rf.JSON, rf.NoColor)
 		return nil
 	},
 }

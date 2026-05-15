@@ -82,10 +82,10 @@ func (o *Output) Hint(format string, args ...any) {
 func (o *Output) print(style lipgloss.Style, format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	if o.noColor {
-		fmt.Fprintln(o.w, msg)
+		_, _ = fmt.Fprintln(o.w, msg)
 		return
 	}
-	fmt.Fprintln(o.w, style.Render(msg))
+	_, _ = fmt.Fprintln(o.w, style.Render(msg))
 }
 
 func isTTY(w io.Writer) bool {

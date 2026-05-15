@@ -27,15 +27,21 @@ func captureSetup(t *testing.T, cfg kleelog.Config, opts kleelog.SetupOptions) (
 	ctx := context.Background()
 	_, logger, setupErr := kleelog.Setup(ctx, cfg, opts)
 	if setupErr != nil {
-		w.Close()
+		_ = w.Close()
 		return "", setupErr
 	}
 	logger.Info("test message")
 
-	w.Close()
+	if err := w.Close(); err != nil {
+		return "", err
+	}
 	var buf bytes.Buffer
-	io.Copy(&buf, r)
-	r.Close()
+	if _, err := io.Copy(&buf, r); err != nil {
+		return "", err
+	}
+	if err := r.Close(); err != nil {
+		return "", err
+	}
 
 	return buf.String(), nil
 }
@@ -102,10 +108,11 @@ func TestSetupBothSinks(t *testing.T) {
 	require.NoError(t, err)
 	logger.Info("both sinks")
 
-	w.Close()
+	require.NoError(t, w.Close())
 	var buf bytes.Buffer
-	io.Copy(&buf, r)
-	r.Close()
+	_, err = io.Copy(&buf, r)
+	require.NoError(t, err)
+	require.NoError(t, r.Close())
 	os.Stderr = orig
 
 	require.Contains(t, buf.String(), "both sinks")

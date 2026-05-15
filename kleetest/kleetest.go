@@ -57,15 +57,27 @@ func capture(t *testing.T, fn func()) (stdout, stderr string) {
 
 	fn()
 
-	wOut.Close()
-	wErr.Close()
+	if err := wOut.Close(); err != nil {
+		t.Logf("kleetest: closing stdout pipe writer: %v", err)
+	}
+	if err := wErr.Close(); err != nil {
+		t.Logf("kleetest: closing stderr pipe writer: %v", err)
+	}
 	os.Stdout, os.Stderr = origStdout, origStderr
 
 	var bufOut, bufErr bytes.Buffer
-	io.Copy(&bufOut, rOut)
-	io.Copy(&bufErr, rErr)
-	rOut.Close()
-	rErr.Close()
+	if _, err := io.Copy(&bufOut, rOut); err != nil {
+		t.Fatalf("kleetest: reading stdout: %v", err)
+	}
+	if _, err := io.Copy(&bufErr, rErr); err != nil {
+		t.Fatalf("kleetest: reading stderr: %v", err)
+	}
+	if err := rOut.Close(); err != nil {
+		t.Logf("kleetest: closing stdout pipe reader: %v", err)
+	}
+	if err := rErr.Close(); err != nil {
+		t.Logf("kleetest: closing stderr pipe reader: %v", err)
+	}
 
 	return bufOut.String(), bufErr.String()
 }
