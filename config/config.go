@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"reflect"
@@ -9,9 +10,18 @@ import (
 	"github.com/doron-cohen/klee/xdg"
 )
 
+// ErrSecretNotFound is returned by SecretStore.Get when a key is not found.
+var ErrSecretNotFound = errors.New("secret not found")
+
 // SecretStore retrieves secrets by key.
 type SecretStore interface {
 	Get(key string) (string, error)
+}
+
+// WritableSecretStore extends SecretStore with write and delete operations.
+type WritableSecretStore interface {
+	SecretStore
+	Set(key, value string) error
 }
 
 // FieldConfig is passed to ConfigurableField.Configure during the wiring pass.

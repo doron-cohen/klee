@@ -29,3 +29,8 @@ func (k *Keychain) Get(key string) (string, error) {
 	}
 	return val, nil
 }
+
+// Set stores a secret value for key under the configured service.
+func (k *Keychain) Set(key, value string) error {
+	return keyring.Set(k.service, key, value)
+}

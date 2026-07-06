@@ -7,6 +7,7 @@ import (
 
 	"github.com/doron-cohen/klee/config"
 	kleelog "github.com/doron-cohen/klee/log"
+	"github.com/doron-cohen/klee/secrets"
 	"github.com/doron-cohen/klee/version"
 	"github.com/urfave/cli/v3"
 )
@@ -20,16 +21,20 @@ type ConfigOptions[T any] struct {
 	// DotEnvFiles are .env files to load KEY=VALUE pairs from.
 	// Real environment variables take precedence over values in these files.
 	DotEnvFiles []string
+	// SecretStore is used for Secret field resolution during config loading.
+	// If nil, the store set via WithSecretStore is used instead.
+	SecretStore config.SecretStore
 }
 
 // App is a klee application with typed config T.
 type App[T any] struct {
-	name      string
-	version   string
-	commands  []*cli.Command
-	cfg       *T
-	afterLoad func(cmd *cli.Command) error
-	debug     bool
+	name        string
+	version     string
+	commands    []*cli.Command
+	cfg         *T
+	afterLoad   func(cmd *cli.Command) error
+	debug       bool
+	secretStore config.SecretStore
 }
 
 // New creates a new App.
@@ -42,6 +47,14 @@ func New[T any](name, ver string, commands []*cli.Command) *App[T] {
 	}
 }
 
+// WithSecretStore sets the SecretStore used by the secrets CLI command and
+// Secret config fields. If the store also implements WritableSecretStore,
+// the secrets set subcommand is enabled.
+func (a *App[T]) WithSecretStore(s config.SecretStore) *App[T] {
+	a.secretStore = s
+	return a
+}
+
 // LoadConfig loads configuration from files and environment variables.
 func (a *App[T]) LoadConfig(opts ConfigOptions[T]) error {
 	projectPath := scanConfigFlag(opts.FlagArgs)
@@ -52,10 +65,16 @@ func (a *App[T]) LoadConfig(opts ConfigOptions[T]) error {
 		}
 	}
 
+	store := opts.SecretStore
+	if store == nil {
+		store = a.secretStore
+	}
+
 	return config.Load(a.cfg, config.Options{
 		AppName:     a.name,
 		ProjectPath: projectPath,
 		DotEnvFiles: opts.DotEnvFiles,
+		SecretStore: store,
 	})
 }
 
@@ -64,11 +83,17 @@ func (a *App[T]) Run(ctx context.Context, args []string) int {
 	ctx, cancel := withSignalCancel(ctx)
 	defer cancel()
 
+	cmds := a.commands
+	if a.secretStore != nil {
+		cmds = append([]*cli.Command{secrets.Command(a.secretStore)}, cmds...)
+	}
+	cmds = append(cmds, versionCommand(a.version))
+
 	app := &cli.Command{
 		Name:     a.name,
 		Flags:    globalFlags,
 		Before:   a.before,
-		Commands: append(a.commands, versionCommand(a.version)),
+		Commands: cmds,
 	}
 
 	if err := app.Run(ctx, args); err != nil {

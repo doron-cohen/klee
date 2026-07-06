@@ -6,11 +6,41 @@ import (
 	"testing"
 
 	"github.com/doron-cohen/klee"
+	"github.com/doron-cohen/klee/config"
 	"github.com/doron-cohen/klee/internal/testapp"
 	"github.com/doron-cohen/klee/kleetest"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v3"
 )
+
+// memStore is an in-memory WritableSecretStore for testing.
+type memStore struct {
+	m map[string]string
+}
+
+func newMemStore() *memStore {
+	return &memStore{m: make(map[string]string)}
+}
+
+func (m *memStore) Get(key string) (string, error) {
+	v, ok := m.m[key]
+	if !ok {
+		return "", config.ErrSecretNotFound
+	}
+	return v, nil
+}
+
+func (m *memStore) Set(key, value string) error {
+	m.m[key] = value
+	return nil
+}
+
+// readOnlyStore implements config.SecretStore but not config.WritableSecretStore.
+type readOnlyStore struct{}
+
+func (r *readOnlyStore) Get(key string) (string, error) {
+	return "", config.ErrSecretNotFound
+}
 
 // run creates a fresh app, loads config from args, and runs with kleetest.
 func run(t *testing.T, args ...string) *kleetest.Result {
@@ -178,6 +208,65 @@ func TestOutputMessages(t *testing.T) {
 			}
 		})
 	}
+}
+
+// --- secrets ---
+
+func TestSecretsGet(t *testing.T) {
+	store := newMemStore()
+	store.Set("mykey", "myvalue")
+
+	app := testapp.NewApp().WithSecretStore(store)
+	require.NoError(t, app.LoadConfig(klee.ConfigOptions[testapp.Config]{
+		FlagArgs: []string{"app"},
+	}))
+
+	result := kleetest.Run(t, app, "secrets", "get", "mykey")
+	result.ExitCode.Equals(t, 0)
+	result.Stdout.Contains(t, "myvalue")
+	result.Stderr.Empty(t)
+}
+
+func TestSecretsGet_MissingKey(t *testing.T) {
+	store := newMemStore()
+
+	app := testapp.NewApp().WithSecretStore(store)
+	require.NoError(t, app.LoadConfig(klee.ConfigOptions[testapp.Config]{
+		FlagArgs: []string{"app"},
+	}))
+
+	result := kleetest.Run(t, app, "secrets", "get", "nonexistent")
+	result.ExitCode.Equals(t, 1)
+	result.Stderr.Contains(t, "not found")
+}
+
+func TestSecretsSet(t *testing.T) {
+	store := newMemStore()
+
+	app := testapp.NewApp().WithSecretStore(store)
+	require.NoError(t, app.LoadConfig(klee.ConfigOptions[testapp.Config]{
+		FlagArgs: []string{"app"},
+	}))
+
+	result := kleetest.Run(t, app, "secrets", "set", "newkey", "newvalue")
+	result.ExitCode.Equals(t, 0)
+
+	val, err := store.Get("newkey")
+	require.NoError(t, err)
+	require.Equal(t, "newvalue", val)
+}
+
+func TestSecretsSet_ReadOnlyStore(t *testing.T) {
+	store := &readOnlyStore{}
+
+	app := testapp.NewApp().WithSecretStore(store)
+	require.NoError(t, app.LoadConfig(klee.ConfigOptions[testapp.Config]{
+		FlagArgs: []string{"app"},
+	}))
+
+	result := kleetest.Run(t, app, "secrets", "set", "key", "val")
+	result.ExitCode.Equals(t, 1)
+	result.Stderr.Contains(t, "does not support write")
 }
 
 // --- error rendering ---
