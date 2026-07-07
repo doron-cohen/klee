@@ -11,10 +11,10 @@ import (
 )
 
 var (
-	successStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))  // green
-	warnStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))  // yellow
-	errorStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))  // red
-	hintStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))  // dim gray
+	successStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2")) // green
+	warnStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("3")) // yellow
+	errorStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("1")) // red
+	hintStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("8")) // dim gray
 )
 
 // Output writes styled messages to a writer (typically stderr).

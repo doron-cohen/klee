@@ -126,9 +126,9 @@ func TestMergeTypeCoercion(t *testing.T) {
 			wantPort: 9999, wantDebug: false, wantRate: 1.5,
 		},
 		{
-			name:      "bool from env",
-			env:       map[string]string{"KLEE_MERGE_DEBUG": "true"},
-			wantPort:  8080, wantDebug: true, wantRate: 1.5,
+			name:     "bool from env",
+			env:      map[string]string{"KLEE_MERGE_DEBUG": "true"},
+			wantPort: 8080, wantDebug: true, wantRate: 1.5,
 		},
 		{
 			name:     "float from env",

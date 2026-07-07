@@ -182,9 +182,9 @@ func TestLogFormatFlagJSON(t *testing.T) {
 
 func TestOutputMessages(t *testing.T) {
 	tests := []struct {
-		name        string
-		args        []string
-		wantErr     string
+		name         string
+		args         []string
+		wantErr      string
 		wantErrEmpty bool
 	}{
 		{"success shown", []string{"msg", "success"}, "success message", false},
@@ -292,4 +292,3 @@ func TestErrors(t *testing.T) {
 		})
 	}
 }
-

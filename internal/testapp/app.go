@@ -15,8 +15,8 @@ func init() {
 
 // Config is the testapp configuration struct.
 type Config struct {
-	Host string `yaml:"host" env:"TESTAPP_HOST" default:"localhost"`
-	Port int    `yaml:"port" env:"TESTAPP_PORT" default:"8080"`
+	Host       string `yaml:"host" env:"TESTAPP_HOST" default:"localhost"`
+	Port       int    `yaml:"port" env:"TESTAPP_PORT" default:"8080"`
 	log.Config `yaml:"log"`
 }
 

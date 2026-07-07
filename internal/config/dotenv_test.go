@@ -109,7 +109,7 @@ func TestDotEnvPrecedence(t *testing.T) {
 		cfg, err := mergeWithDotEnv(t, []string{second})
 		require.NoError(t, err)
 		require.Equal(t, "partialhost", cfg.Host)
-		require.Equal(t, 8080, cfg.Port) // default
+		require.Equal(t, 8080, cfg.Port)   // default
 		require.Equal(t, false, cfg.Debug) // default
 	})
 }

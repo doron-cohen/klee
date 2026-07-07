@@ -71,9 +71,9 @@ func TestLoad(t *testing.T) {
 			wantDBName: "envdb",
 		},
 		{
-			name:        "invalid yaml returns error",
-			yaml:        "host: [not: valid yaml",
-			wantErr:     true,
+			name:    "invalid yaml returns error",
+			yaml:    "host: [not: valid yaml",
+			wantErr: true,
 		},
 	}
 

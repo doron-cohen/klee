@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/doron-cohen/klee/commands"
 	"github.com/doron-cohen/klee/config"
 	kleelog "github.com/doron-cohen/klee/log"
-	"github.com/doron-cohen/klee/secrets"
 	"github.com/doron-cohen/klee/version"
 	"github.com/urfave/cli/v3"
 )
@@ -93,9 +93,12 @@ func (a *App[T]) Run(ctx context.Context, args []string) int {
 
 	cmds := a.commands
 	if a.secretStore != nil {
-		cmds = append([]*cli.Command{secrets.Command(a.secretStore)}, cmds...)
+		cmds = append([]*cli.Command{commands.SecretsCommand(a.secretStore)}, cmds...)
 	}
-	cmds = append(cmds, versionCommand(a.version))
+	cmds = append(cmds, commands.VersionCommand(a.version))
+	cmds = append(cmds, commands.ConfigCommand(func(ctx context.Context) any {
+		return Config[T](ctx)
+	}))
 
 	app := &cli.Command{
 		Name:     a.name,
@@ -156,25 +159,4 @@ func scanConfigFlag(args []string) string {
 		}
 	}
 	return ""
-}
-
-func versionCommand(ver string) *cli.Command {
-	return &cli.Command{
-		Name:  "version",
-		Usage: "print version information",
-		Flags: []cli.Flag{
-			&cli.BoolFlag{
-				Name:  "short",
-				Usage: "print version number only",
-			},
-		},
-		Action: func(ctx context.Context, cmd *cli.Command) error {
-			if cmd.Bool("short") {
-				fmt.Println(version.Version)
-			} else {
-				fmt.Println(ver)
-			}
-			return nil
-		},
-	}
 }

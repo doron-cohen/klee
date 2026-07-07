@@ -1,4 +1,4 @@
-package secrets
+package commands
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// Command returns a CLI command for managing secrets via the given store.
-func Command(store config.SecretStore) *cli.Command {
+// SecretsCommand returns the built-in secrets subcommand for managing secret values.
+func SecretsCommand(store config.SecretStore) *cli.Command {
 	return &cli.Command{
 		Name:  "secrets",
 		Usage: "manage secrets",

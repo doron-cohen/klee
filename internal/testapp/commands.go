@@ -30,7 +30,7 @@ var flagsCmd = &cli.Command{
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		rf := klee.GetRunFlags(ctx)
 		_, _ = fmt.Fprintf(os.Stdout, "debug=%v quiet=%v json=%v no-color=%v\n",
-				rf.Debug, rf.Quiet, rf.JSON, rf.NoColor)
+			rf.Debug, rf.Quiet, rf.JSON, rf.NoColor)
 		return nil
 	},
 }

@@ -14,9 +14,9 @@ type testError struct {
 	hint string
 }
 
-func (e *testError) Error() string        { return e.msg }
+func (e *testError) Error() string          { return e.msg }
 func (e *testError) ErrorKind() errors.Kind { return e.kind }
-func (e *testError) Hint() string         { return e.hint }
+func (e *testError) Hint() string           { return e.hint }
 
 func TestKindValues(t *testing.T) {
 	require.Equal(t, errors.Kind(1), errors.KindUser)
