@@ -22,7 +22,7 @@ type Config struct {
 
 // NewApp builds a klee.App for use in tests.
 func NewApp() *klee.App[Config] {
-	return klee.New[Config]("testapp", version.String(), []*cli.Command{
+	return klee.New[Config]("testapp", []*cli.Command{
 		echoCmd,
 		flagsCmd,
 		failCmd,

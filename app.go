@@ -37,14 +37,22 @@ type App[T any] struct {
 	secretStore config.SecretStore
 }
 
-// New creates a new App.
-func New[T any](name, ver string, commands []*cli.Command) *App[T] {
+// New creates a new App. Version defaults to version.String(), which
+// picks up values injected via ldflags (version.Version, version.Commit,
+// version.BuildDate). Use WithVersion to override.
+func New[T any](name string, commands []*cli.Command) *App[T] {
 	return &App[T]{
 		name:     name,
-		version:  ver,
+		version:  version.String(),
 		commands: commands,
 		cfg:      new(T),
 	}
+}
+
+// WithVersion overrides the version string shown by the built-in version command.
+func (a *App[T]) WithVersion(ver string) *App[T] {
+	a.version = ver
+	return a
 }
 
 // WithSecretStore sets the SecretStore used by the secrets CLI command and
