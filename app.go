@@ -29,6 +29,7 @@ type ConfigOptions[T any] struct {
 // App is a klee application with typed config T.
 type App[T any] struct {
 	name        string
+	usage       string
 	version     string
 	commands    []*cli.Command
 	cfg         *T
@@ -52,6 +53,13 @@ func New[T any](name string, commands []*cli.Command) *App[T] {
 // WithVersion overrides the version string shown by the built-in version command.
 func (a *App[T]) WithVersion(ver string) *App[T] {
 	a.version = ver
+	return a
+}
+
+// WithUsage sets the one-line description shown in --help output. Without
+// it, urfave/cli falls back to its own generic placeholder text.
+func (a *App[T]) WithUsage(usage string) *App[T] {
+	a.usage = usage
 	return a
 }
 
@@ -102,6 +110,7 @@ func (a *App[T]) Run(ctx context.Context, args []string) int {
 
 	app := &cli.Command{
 		Name:     a.name,
+		Usage:    a.usage,
 		Flags:    globalFlags,
 		Before:   a.before,
 		Commands: cmds,

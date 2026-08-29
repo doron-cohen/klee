@@ -76,6 +76,25 @@ func TestVersionShort(t *testing.T) {
 	result.Stderr.Empty(t)
 }
 
+// --- usage ---
+
+func TestWithUsage(t *testing.T) {
+	app := testapp.NewApp().WithUsage("a test app for klee itself")
+	require.NoError(t, app.LoadConfig(klee.ConfigOptions[testapp.Config]{
+		FlagArgs: []string{"app"},
+	}))
+
+	result := kleetest.Run(t, app, "--help")
+	result.ExitCode.Equals(t, 0)
+	result.Stdout.Contains(t, "a test app for klee itself")
+}
+
+func TestWithoutUsage_FallsBackToCLIDefault(t *testing.T) {
+	result := run(t, "--help")
+	result.ExitCode.Equals(t, 0)
+	result.Stdout.Contains(t, "A new cli application")
+}
+
 // --- config loading ---
 
 func TestConfigDefaults(t *testing.T) {
