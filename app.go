@@ -116,12 +116,25 @@ func (a *App[T]) Run(ctx context.Context, args []string) int {
 		Commands: cmds,
 	}
 
+	var unknown string
+	classifyUsage(app, func(name string) { unknown = name })
+
 	if err := app.Run(ctx, args); err != nil {
-		fmt.Fprintln(os.Stderr, renderError(err, a.debug))
-		return exitCodeForError(err)
+		return a.report(err)
+	}
+
+	// CommandNotFound cannot return an error, so a wrong name surfaces here
+	// rather than above.
+	if unknown != "" {
+		return a.report(unknownCommand(unknown))
 	}
 
 	return 0
+}
+
+func (a *App[T]) report(err error) int {
+	fmt.Fprintln(os.Stderr, renderError(err, a.debug))
+	return exitCodeForError(err)
 }
 
 func (a *App[T]) before(ctx context.Context, cmd *cli.Command) (context.Context, error) {
