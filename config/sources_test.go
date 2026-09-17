@@ -32,10 +32,9 @@ func TestSourcesListEverySearchPath(t *testing.T) {
 	project := noProjectFile(t)
 
 	var cfg testConfig
-	sources, err := config.LoadWithSources(&cfg, config.Options{
-		AppName:          "kleetest",
-		ProjectPath:      project,
-		SearchConfigDirs: true,
+	sources, err := config.Load(&cfg, config.Options{
+		AppName:     "kleetest",
+		ProjectPath: project,
 	})
 	require.NoError(t, err)
 
@@ -53,30 +52,12 @@ func TestSourcesMarkTheFileThatWasRead(t *testing.T) {
 	writeConfig(t, dotConfig, "host: dotconfig\n")
 
 	var cfg testConfig
-	sources, err := config.LoadWithSources(&cfg, config.Options{
-		AppName:          "kleetest",
-		ProjectPath:      noProjectFile(t),
-		SearchConfigDirs: true,
+	sources, err := config.Load(&cfg, config.Options{
+		AppName:     "kleetest",
+		ProjectPath: noProjectFile(t),
 	})
 	require.NoError(t, err)
 
 	require.Equal(t, []string{dotConfig}, loaded(sources))
 }
 
-func TestSourcesAreV022sSearchPathWhenOptedOut(t *testing.T) {
-	fakeHome(t)
-	project := noProjectFile(t)
-
-	var cfg testConfig
-	sources, err := config.LoadWithSources(&cfg, config.Options{
-		AppName:     "kleetest",
-		ProjectPath: project,
-	})
-	require.NoError(t, err)
-
-	require.Equal(t, []string{
-		"/etc/kleetest/config.yaml",
-		filepath.Join(adrgxdg.ConfigHome, "kleetest", "config.yaml"),
-		project,
-	}, paths(sources))
-}

@@ -59,14 +59,18 @@ Precedence: flags → env vars → project file → user file → XDG config dir
 
 XDG paths for user/system files, driven by app name.
 
-The user file lives in the XDG config home. `SearchConfigDirs` additionally
-searches the secondary XDG config directories (`$XDG_CONFIG_DIRS`, or the
-platform defaults) beneath it. On darwin those include `~/.config`, which the
-config home does not — it resolves to `~/Library/Application Support` there.
-The config home always outranks them, so an explicit `XDG_CONFIG_HOME` still
-wins and an existing Application Support file keeps its precedence. Off by
-default, because switching it on can only make klee read a file it used to
-ignore.
+The user file lives in the XDG config home. The secondary XDG config
+directories (`$XDG_CONFIG_DIRS`, or the platform defaults) are searched beneath
+it. On darwin those include `~/.config`, which the config home does not — it
+resolves to `~/Library/Application Support` there. The config home always
+outranks them, so an explicit `XDG_CONFIG_HOME` wins and a file already at the
+config home keeps its precedence.
+
+The secondary directories include machine-wide ones — on darwin
+`/Library/Application Support` and `/Library/Preferences`. An app that must not
+take configuration written by anyone with admin rights would need a way to skip
+them; none does today, so there is no switch for it. A user who wants a
+different set already has `$XDG_CONFIG_DIRS`.
 
 Validation opt-in:
 - implement `Validate() error` on config struct
@@ -75,8 +79,9 @@ Validation opt-in:
 Built-in commands: `config validate`, `config print`
 
 `config print` lists the candidate config files and which were read on stderr,
-leaving stdout as the config document alone. `config.LoadWithSources` returns
-the same information to apps that want to report it themselves.
+leaving stdout as the config document alone so `config print | yq` keeps
+working. `config.Load` returns the same list to apps that want to report it
+themselves.
 
 App composes package configs via embedding:
 ```go
@@ -171,6 +176,9 @@ Signal handling: SIGTERM/SIGINT → context cancel.
 ## `kleetest`
 
 Test harness for CLI commands. Built on testify.
+
+`IsolateConfig(t)` points the XDG config search at a temp dir, so a config file
+on the machine running the tests cannot answer for a default.
 
 Run a command with args, captures stdout, stderr, exit code:
 

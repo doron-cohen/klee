@@ -95,7 +95,7 @@ func TestLoad(t *testing.T) {
 			}
 
 			var cfg testConfig
-			err := config.Load(&cfg, opts)
+			_, err := config.Load(&cfg, opts)
 
 			if tt.wantErr {
 				require.Error(t, err)

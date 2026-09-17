@@ -23,24 +23,15 @@ func (r cmdRunner) Run(ctx context.Context, args []string) int {
 	return 0
 }
 
-func runConfigCommand(t *testing.T, opts ...commands.ConfigOption) *kleetest.Result {
-	t.Helper()
+// An App whose LoadConfig never ran has no sources, and config print must
+// still work rather than emit an empty heading.
+func TestConfigPrintWithoutSources(t *testing.T) {
 	cfg := commands.ConfigCommand(func(context.Context) any {
 		return &demoConfig{Host: "example"}
-	}, opts...)
-	return kleetest.Run(t, cmdRunner{&cli.Command{Commands: []*cli.Command{cfg}}}, "config", "print")
-}
+	}, nil)
 
-// The v0.2.2 call form takes no options and must still print only the config.
-func TestConfigPrintWithoutSources(t *testing.T) {
-	result := runConfigCommand(t)
+	result := kleetest.Run(t, cmdRunner{&cli.Command{Commands: []*cli.Command{cfg}}}, "config", "print")
 	result.ExitCode.Equals(t, 0)
 	result.Stdout.Equals(t, "host: example\n")
-	result.Stderr.Empty(t)
-}
-
-func TestConfigPrintWithEmptySources(t *testing.T) {
-	result := runConfigCommand(t, commands.WithSources(nil))
-	result.ExitCode.Equals(t, 0)
 	result.Stderr.Empty(t)
 }

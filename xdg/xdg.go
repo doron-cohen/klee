@@ -16,6 +16,14 @@ func New(appName string) Dirs {
 	return Dirs{appName: appName}
 }
 
+// Reload re-resolves the base directories from the environment. They are
+// resolved once at process start, so anything that changes XDG_CONFIG_HOME
+// or XDG_CONFIG_DIRS afterwards — a test, mostly — has no effect until this
+// is called.
+func Reload() {
+	xdg.Reload()
+}
+
 // ConfigHome returns $XDG_CONFIG_HOME/<appName>.
 func (d Dirs) ConfigHome() string {
 	return filepath.Join(xdg.ConfigHome, d.appName)

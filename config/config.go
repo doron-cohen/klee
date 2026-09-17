@@ -47,14 +47,6 @@ type Options struct {
 	// Filename is the config filename used under XDG dirs.
 	// Defaults to "config.yaml".
 	Filename string
-	// SearchConfigDirs also searches the secondary XDG config directories
-	// (xdg.Dirs.ConfigDirs) below the config home. On darwin this is what
-	// makes ~/.config/<appName>/ readable, since the config home there
-	// resolves to ~/Library/Application Support.
-	//
-	// Off by default: turning it on can only make klee read a file it
-	// previously ignored, and that is a change existing apps must ask for.
-	SearchConfigDirs bool
 	// DotEnvFiles are .env files to load KEY=VALUE pairs from.
 	// Real environment variables take precedence over values in these files.
 	DotEnvFiles []string
@@ -92,16 +84,6 @@ func configureFields(v reflect.Value, store SecretStore) error {
 	return nil
 }
 
-// Load populates dest from config files and environment variables.
-// dest must be a pointer to a struct.
-//
-// Precedence (lowest to highest): system file → XDG config dirs (if
-// Options.SearchConfigDirs) → user file → project file → env vars → defaults.
-func Load(dest any, opts Options) error {
-	_, err := LoadWithSources(dest, opts)
-	return err
-}
-
 // Source is one candidate config file and whether Load read it.
 type Source struct {
 	// Path is the candidate file.
@@ -110,14 +92,18 @@ type Source struct {
 	Loaded bool
 }
 
-// LoadWithSources is Load, and also reports every file it considered, in
-// ascending order of precedence. Apps use it to tell a user where config
-// was looked for, which is otherwise impossible to answer from outside
-// without reimplementing the search.
+// Load populates dest from config files and environment variables, and
+// reports every file it considered, in ascending order of precedence.
+// dest must be a pointer to a struct.
 //
-// Sources are returned even when loading fails, so an app can show what it
-// had tried before the error.
-func LoadWithSources(dest any, opts Options) ([]Source, error) {
+// Precedence (lowest to highest): system file → XDG config dirs → user file
+// → project file → env vars → defaults. The XDG config dirs are the
+// secondary directories from $XDG_CONFIG_DIRS or the platform defaults; on
+// darwin they include ~/.config, which the config home does not.
+//
+// Sources come back even when loading fails, so a caller can show what had
+// been read before the error.
+func Load(dest any, opts Options) ([]Source, error) {
 	paths := searchPaths(opts)
 
 	if err := configureFields(reflect.ValueOf(dest), opts.SecretStore); err != nil {
@@ -154,13 +140,11 @@ func searchPaths(opts Options) []string {
 		projectPath = fmt.Sprintf("./%s.yaml", opts.AppName)
 	}
 
+	// ConfigDirs is most-preferred first; this list is least-preferred first.
 	paths := []string{filepath.Join("/etc", opts.AppName, opts.Filename)}
-	if opts.SearchConfigDirs {
-		// ConfigDirs is most-preferred first; this list is least-preferred first.
-		secondary := dirs.ConfigDirs()
-		for i := len(secondary) - 1; i >= 0; i-- {
-			paths = append(paths, filepath.Join(secondary[i], opts.Filename))
-		}
+	secondary := dirs.ConfigDirs()
+	for i := len(secondary) - 1; i >= 0; i-- {
+		paths = append(paths, filepath.Join(secondary[i], opts.Filename))
 	}
 	paths = append(paths, dirs.ConfigFile(opts.Filename), projectPath)
 
