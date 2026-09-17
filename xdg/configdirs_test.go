@@ -16,13 +16,15 @@ import (
 func fakeHome(t *testing.T) string {
 	t.Helper()
 	home := t.TempDir()
+	// Registered before the Setenv calls so it runs after their restores:
+	// a reload against a deleted temp dir would leak into the next test.
+	t.Cleanup(adrgxdg.Reload)
 	t.Setenv("HOME", home)
 	// adrg/xdg treats an empty value as unset, so this is how a test drops
 	// an inherited override without disturbing the real environment.
 	t.Setenv("XDG_CONFIG_HOME", "")
 	t.Setenv("XDG_CONFIG_DIRS", "")
 	adrgxdg.Reload()
-	t.Cleanup(adrgxdg.Reload)
 	return home
 }
 

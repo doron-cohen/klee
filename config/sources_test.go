@@ -33,9 +33,8 @@ func TestSourcesListEverySearchPath(t *testing.T) {
 
 	var cfg testConfig
 	sources, err := config.LoadWithSources(&cfg, config.Options{
-		AppName:          "kleetest",
-		ProjectPath:      project,
-		SearchConfigDirs: true,
+		AppName:     "kleetest",
+		ProjectPath: project,
 	})
 	require.NoError(t, err)
 
@@ -54,23 +53,25 @@ func TestSourcesMarkTheFileThatWasRead(t *testing.T) {
 
 	var cfg testConfig
 	sources, err := config.LoadWithSources(&cfg, config.Options{
-		AppName:          "kleetest",
-		ProjectPath:      noProjectFile(t),
-		SearchConfigDirs: true,
+		AppName:     "kleetest",
+		ProjectPath: noProjectFile(t),
 	})
 	require.NoError(t, err)
 
 	require.Equal(t, []string{dotConfig}, loaded(sources))
 }
 
-func TestSourcesAreV022sSearchPathWhenOptedOut(t *testing.T) {
+// DisableConfigDirs reduces the search to exactly the three paths v0.2.2
+// looked at, which is the whole of what an app gives up by setting it.
+func TestDisableConfigDirsRestoresTheV022SearchPath(t *testing.T) {
 	fakeHome(t)
 	project := noProjectFile(t)
 
 	var cfg testConfig
 	sources, err := config.LoadWithSources(&cfg, config.Options{
-		AppName:     "kleetest",
-		ProjectPath: project,
+		AppName:           "kleetest",
+		ProjectPath:       project,
+		DisableConfigDirs: true,
 	})
 	require.NoError(t, err)
 

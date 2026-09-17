@@ -59,14 +59,18 @@ Precedence: flags → env vars → project file → user file → XDG config dir
 
 XDG paths for user/system files, driven by app name.
 
-The user file lives in the XDG config home. `SearchConfigDirs` additionally
-searches the secondary XDG config directories (`$XDG_CONFIG_DIRS`, or the
-platform defaults) beneath it. On darwin those include `~/.config`, which the
-config home does not — it resolves to `~/Library/Application Support` there.
-The config home always outranks them, so an explicit `XDG_CONFIG_HOME` still
-wins and an existing Application Support file keeps its precedence. Off by
-default, because switching it on can only make klee read a file it used to
-ignore.
+The user file lives in the XDG config home. The secondary XDG config
+directories (`$XDG_CONFIG_DIRS`, or the platform defaults) are searched beneath
+it. On darwin those include `~/.config`, which the config home does not — it
+resolves to `~/Library/Application Support` there. The config home always
+outranks them, so an explicit `XDG_CONFIG_HOME` wins and a file already at the
+config home keeps its precedence.
+
+`DisableConfigDirs` restricts the search to the config home. It exists because
+the secondary directories include machine-wide ones, which an app that must not
+take configuration from anyone with admin rights will want to skip. Keeping
+`~/.config` out of the search is not a reason to reach for it — that is the
+user's to control, via `$XDG_CONFIG_DIRS`.
 
 Validation opt-in:
 - implement `Validate() error` on config struct
@@ -171,6 +175,9 @@ Signal handling: SIGTERM/SIGINT → context cancel.
 ## `kleetest`
 
 Test harness for CLI commands. Built on testify.
+
+`IsolateConfig(t)` points the XDG config search at a temp dir, so a config file
+on the machine running the tests cannot answer for a default.
 
 Run a command with args, captures stdout, stderr, exit code:
 

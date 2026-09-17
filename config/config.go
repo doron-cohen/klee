@@ -47,14 +47,15 @@ type Options struct {
 	// Filename is the config filename used under XDG dirs.
 	// Defaults to "config.yaml".
 	Filename string
-	// SearchConfigDirs also searches the secondary XDG config directories
-	// (xdg.Dirs.ConfigDirs) below the config home. On darwin this is what
-	// makes ~/.config/<appName>/ readable, since the config home there
-	// resolves to ~/Library/Application Support.
+	// DisableConfigDirs restricts the user-level search to the XDG config
+	// home, skipping the secondary XDG config directories
+	// (xdg.Dirs.ConfigDirs) that are searched beneath it by default.
 	//
-	// Off by default: turning it on can only make klee read a file it
-	// previously ignored, and that is a change existing apps must ask for.
-	SearchConfigDirs bool
+	// Those directories include machine-wide ones, so an app that must not
+	// take configuration written by anyone with admin rights wants this.
+	// It is not needed merely to keep ~/.config out of the search: that is
+	// the user's to control, via XDG_CONFIG_DIRS.
+	DisableConfigDirs bool
 	// DotEnvFiles are .env files to load KEY=VALUE pairs from.
 	// Real environment variables take precedence over values in these files.
 	DotEnvFiles []string
@@ -95,8 +96,8 @@ func configureFields(v reflect.Value, store SecretStore) error {
 // Load populates dest from config files and environment variables.
 // dest must be a pointer to a struct.
 //
-// Precedence (lowest to highest): system file → XDG config dirs (if
-// Options.SearchConfigDirs) → user file → project file → env vars → defaults.
+// Precedence (lowest to highest): system file → XDG config dirs → user file
+// → project file → env vars → defaults.
 func Load(dest any, opts Options) error {
 	_, err := LoadWithSources(dest, opts)
 	return err
@@ -155,7 +156,7 @@ func searchPaths(opts Options) []string {
 	}
 
 	paths := []string{filepath.Join("/etc", opts.AppName, opts.Filename)}
-	if opts.SearchConfigDirs {
+	if !opts.DisableConfigDirs {
 		// ConfigDirs is most-preferred first; this list is least-preferred first.
 		secondary := dirs.ConfigDirs()
 		for i := len(secondary) - 1; i >= 0; i-- {
