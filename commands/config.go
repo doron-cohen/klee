@@ -5,18 +5,39 @@ import (
 	"encoding"
 	"encoding/json"
 	"fmt"
+	"io"
+	"os"
 	"reflect"
 	"strings"
 
+	"github.com/doron-cohen/klee/config"
 	"github.com/urfave/cli/v3"
 	"gopkg.in/yaml.v3"
 )
 
 var textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
 
+// ConfigOption customises the built-in config command.
+type ConfigOption func(*configCommand)
+
+type configCommand struct {
+	sources []config.Source
+}
+
+// WithSources makes config print report the files that were searched for
+// configuration and which of them were read.
+func WithSources(sources []config.Source) ConfigOption {
+	return func(c *configCommand) { c.sources = sources }
+}
+
 // ConfigCommand returns the built-in config subcommand for inspecting
 // and validating the loaded configuration.
-func ConfigCommand(getConfig func(context.Context) any) *cli.Command {
+func ConfigCommand(getConfig func(context.Context) any, opts ...ConfigOption) *cli.Command {
+	c := &configCommand{}
+	for _, opt := range opts {
+		opt(c)
+	}
+
 	return &cli.Command{
 		Name:  "config",
 		Usage: "manage configuration",
@@ -46,6 +67,9 @@ func ConfigCommand(getConfig func(context.Context) any) *cli.Command {
 					if cfg == nil {
 						return fmt.Errorf("no configuration loaded")
 					}
+					if !cmd.Bool("quiet") {
+						printSources(os.Stderr, c.sources)
+					}
 					tree := structToMap(reflect.ValueOf(cfg))
 					if cmd.Bool("json") {
 						out, err := json.MarshalIndent(tree, "", "  ")
@@ -64,6 +88,25 @@ func ConfigCommand(getConfig func(context.Context) any) *cli.Command {
 				},
 			},
 		},
+	}
+}
+
+// printSources lists the candidate config files and whether each was read.
+//
+// It goes to stderr in every output mode: stdout stays exactly the document
+// config print has always emitted, so redirecting or piping it is unaffected,
+// while a human at a terminal still sees where the values came from.
+func printSources(w io.Writer, sources []config.Source) {
+	if len(sources) == 0 {
+		return
+	}
+	_, _ = fmt.Fprintln(w, "config sources (lowest to highest precedence):")
+	for _, s := range sources {
+		status := "not found"
+		if s.Loaded {
+			status = "loaded"
+		}
+		_, _ = fmt.Fprintf(w, "  %-9s  %s\n", status, s.Path)
 	}
 }
 

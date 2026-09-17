@@ -10,20 +10,20 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// loadFile unmarshals a YAML file into dest.
-// Returns nil if the file does not exist.
-func loadFile(path string, dest any) error {
+// loadFile unmarshals a YAML file into dest, reporting whether the file
+// existed. A missing file is not an error.
+func loadFile(path string, dest any) (bool, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil
+			return false, nil
 		}
-		return fmt.Errorf("reading config file %s: %w", path, err)
+		return false, fmt.Errorf("reading config file %s: %w", path, err)
 	}
 	if err := yaml.Unmarshal(data, dest); err != nil {
-		return fmt.Errorf("parsing config file %s: %w", path, err)
+		return true, fmt.Errorf("parsing config file %s: %w", path, err)
 	}
-	return nil
+	return true, nil
 }
 
 // applyEnv sets struct fields from environment variables.

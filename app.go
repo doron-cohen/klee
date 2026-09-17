@@ -18,6 +18,10 @@ type ConfigOptions[T any] struct {
 	FlagArgs []string
 	// AfterLoad is called after config is loaded, with typed config and full CLI flag access.
 	AfterLoad func(cfg *T, cmd *cli.Command) error
+	// SearchConfigDirs also searches the secondary XDG config directories
+	// below the config home. On darwin this is what makes ~/.config/<app>/
+	// readable. See config.Options.SearchConfigDirs.
+	SearchConfigDirs bool
 	// DotEnvFiles are .env files to load KEY=VALUE pairs from.
 	// Real environment variables take precedence over values in these files.
 	DotEnvFiles []string
@@ -36,6 +40,7 @@ type App[T any] struct {
 	afterLoad   func(cmd *cli.Command) error
 	debug       bool
 	secretStore config.SecretStore
+	sources     []config.Source
 }
 
 // New creates a new App. Version defaults to version.String(), which
@@ -86,12 +91,21 @@ func (a *App[T]) LoadConfig(opts ConfigOptions[T]) error {
 		store = a.secretStore
 	}
 
-	return config.Load(a.cfg, config.Options{
-		AppName:     a.name,
-		ProjectPath: projectPath,
-		DotEnvFiles: opts.DotEnvFiles,
-		SecretStore: store,
+	var err error
+	a.sources, err = config.LoadWithSources(a.cfg, config.Options{
+		AppName:          a.name,
+		ProjectPath:      projectPath,
+		DotEnvFiles:      opts.DotEnvFiles,
+		SecretStore:      store,
+		SearchConfigDirs: opts.SearchConfigDirs,
 	})
+	return err
+}
+
+// ConfigSources returns the config files LoadConfig considered, in ascending
+// order of precedence, and whether each was read. Nil until LoadConfig runs.
+func (a *App[T]) ConfigSources() []config.Source {
+	return a.sources
 }
 
 // Run starts the application.
@@ -106,7 +120,7 @@ func (a *App[T]) Run(ctx context.Context, args []string) int {
 	cmds = append(cmds, commands.VersionCommand(a.version))
 	cmds = append(cmds, commands.ConfigCommand(func(ctx context.Context) any {
 		return Config[T](ctx)
-	}))
+	}, commands.WithSources(a.sources)))
 
 	app := &cli.Command{
 		Name:     a.name,
