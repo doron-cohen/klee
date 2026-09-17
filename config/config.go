@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
+	"slices"
 
 	internal "github.com/doron-cohen/klee/internal/config"
 	"github.com/doron-cohen/klee/xdg"
@@ -46,6 +47,14 @@ type Options struct {
 	// Filename is the config filename used under XDG dirs.
 	// Defaults to "config.yaml".
 	Filename string
+	// SearchConfigDirs also searches the secondary XDG config directories
+	// (xdg.Dirs.ConfigDirs) below the config home. On darwin this is what
+	// makes ~/.config/<appName>/ readable, since the config home there
+	// resolves to ~/Library/Application Support.
+	//
+	// Off by default: turning it on can only make klee read a file it
+	// previously ignored, and that is a change existing apps must ask for.
+	SearchConfigDirs bool
 	// DotEnvFiles are .env files to load KEY=VALUE pairs from.
 	// Real environment variables take precedence over values in these files.
 	DotEnvFiles []string
@@ -86,15 +95,56 @@ func configureFields(v reflect.Value, store SecretStore) error {
 // Load populates dest from config files and environment variables.
 // dest must be a pointer to a struct.
 //
-// Precedence (lowest to highest): system file → user file → project file → env vars → defaults.
+// Precedence (lowest to highest): system file → XDG config dirs (if
+// Options.SearchConfigDirs) → user file → project file → env vars → defaults.
 func Load(dest any, opts Options) error {
-	if opts.Filename == "" {
-		opts.Filename = "config.yaml"
+	_, err := LoadWithSources(dest, opts)
+	return err
+}
+
+// Source is one candidate config file and whether Load read it.
+type Source struct {
+	// Path is the candidate file.
+	Path string
+	// Loaded is true if the file existed and was merged in.
+	Loaded bool
+}
+
+// LoadWithSources is Load, and also reports every file it considered, in
+// ascending order of precedence. Apps use it to tell a user where config
+// was looked for, which is otherwise impossible to answer from outside
+// without reimplementing the search.
+//
+// Sources are returned even when loading fails, so an app can show what it
+// had tried before the error.
+func LoadWithSources(dest any, opts Options) ([]Source, error) {
+	paths := searchPaths(opts)
+
+	if err := configureFields(reflect.ValueOf(dest), opts.SecretStore); err != nil {
+		return sources(paths, nil), fmt.Errorf("configuring fields: %w", err)
 	}
 
-	v := reflect.ValueOf(dest)
-	if err := configureFields(v, opts.SecretStore); err != nil {
-		return fmt.Errorf("configuring fields: %w", err)
+	read, err := internal.Merge(internal.MergeOptions{
+		Paths:       paths,
+		DotEnvFiles: opts.DotEnvFiles,
+		Dest:        dest,
+	})
+	return sources(paths, read), err
+}
+
+func sources(paths []string, read []bool) []Source {
+	out := make([]Source, len(paths))
+	for i, path := range paths {
+		out[i] = Source{Path: path, Loaded: i < len(read) && read[i]}
+	}
+	return out
+}
+
+// searchPaths returns the config files to consider for opts, in ascending
+// order of precedence.
+func searchPaths(opts Options) []string {
+	if opts.Filename == "" {
+		opts.Filename = "config.yaml"
 	}
 
 	dirs := xdg.New(opts.AppName)
@@ -104,15 +154,32 @@ func Load(dest any, opts Options) error {
 		projectPath = fmt.Sprintf("./%s.yaml", opts.AppName)
 	}
 
-	paths := []string{
-		filepath.Join("/etc", opts.AppName, opts.Filename),
-		dirs.ConfigFile(opts.Filename),
-		projectPath,
+	paths := []string{filepath.Join("/etc", opts.AppName, opts.Filename)}
+	if opts.SearchConfigDirs {
+		// ConfigDirs is most-preferred first; this list is least-preferred first.
+		secondary := dirs.ConfigDirs()
+		for i := len(secondary) - 1; i >= 0; i-- {
+			paths = append(paths, filepath.Join(secondary[i], opts.Filename))
+		}
 	}
+	paths = append(paths, dirs.ConfigFile(opts.Filename), projectPath)
 
-	return internal.Merge(internal.MergeOptions{
-		Paths:       paths,
-		DotEnvFiles: opts.DotEnvFiles,
-		Dest:        dest,
-	})
+	return dedupe(paths)
+}
+
+// dedupe drops repeated paths, keeping each one at its highest-precedence
+// position. XDG_CONFIG_DIRS can name the config home, or /etc, and a file
+// must not be merged in twice.
+func dedupe(paths []string) []string {
+	seen := make(map[string]bool, len(paths))
+	out := make([]string, 0, len(paths))
+	for i := len(paths) - 1; i >= 0; i-- {
+		if seen[paths[i]] {
+			continue
+		}
+		seen[paths[i]] = true
+		out = append(out, paths[i])
+	}
+	slices.Reverse(out)
+	return out
 }

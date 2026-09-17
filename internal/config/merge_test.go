@@ -101,7 +101,7 @@ func TestMergePrecedence(t *testing.T) {
 			}
 
 			var cfg mergeConfig
-			err := internal.Merge(internal.MergeOptions{Paths: paths, Dest: &cfg})
+			_, err := internal.Merge(internal.MergeOptions{Paths: paths, Dest: &cfg})
 			require.NoError(t, err)
 
 			require.Equal(t, tt.wantHost, cfg.Host)
@@ -154,7 +154,7 @@ func TestMergeTypeCoercion(t *testing.T) {
 			}
 
 			var cfg mergeConfig
-			err := internal.Merge(internal.MergeOptions{
+			_, err := internal.Merge(internal.MergeOptions{
 				Paths: []string{"/nonexistent/klee-test-types.yaml"},
 				Dest:  &cfg,
 			})
@@ -176,20 +176,20 @@ func TestMergeErrors(t *testing.T) {
 	t.Run("invalid YAML returns error", func(t *testing.T) {
 		path := writeYAML(t, "host: [invalid yaml")
 		var cfg mergeConfig
-		err := internal.Merge(internal.MergeOptions{Paths: []string{path}, Dest: &cfg})
+		_, err := internal.Merge(internal.MergeOptions{Paths: []string{path}, Dest: &cfg})
 		require.Error(t, err)
 	})
 
 	t.Run("non-pointer dest returns error", func(t *testing.T) {
 		var cfg mergeConfig
-		err := internal.Merge(internal.MergeOptions{Dest: cfg})
+		_, err := internal.Merge(internal.MergeOptions{Dest: cfg})
 		require.Error(t, err)
 	})
 
 	t.Run("empty file is valid and no-ops", func(t *testing.T) {
 		path := writeYAML(t, "")
 		var cfg mergeConfig
-		err := internal.Merge(internal.MergeOptions{Paths: []string{path}, Dest: &cfg})
+		_, err := internal.Merge(internal.MergeOptions{Paths: []string{path}, Dest: &cfg})
 		require.NoError(t, err)
 		require.Equal(t, "localhost", cfg.Host)
 		require.Equal(t, 8080, cfg.Port)

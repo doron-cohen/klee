@@ -20,32 +20,39 @@ type MergeOptions struct {
 // Merge loads config layers in order, applies env vars, then applies defaults.
 // Later layers win over earlier ones. Env vars win over all file layers.
 // Defaults fill in any remaining zero values.
-func Merge(opts MergeOptions) error {
+//
+// The returned slice says, for each entry of Paths and in the same order,
+// whether that file was actually read. A missing file is not an error, so
+// this is the only place the read/not-read distinction exists.
+func Merge(opts MergeOptions) ([]bool, error) {
 	v := reflect.ValueOf(opts.Dest)
 	if v.Kind() != reflect.Ptr || v.Elem().Kind() != reflect.Struct {
-		return fmt.Errorf("dest must be a pointer to a struct")
+		return nil, fmt.Errorf("dest must be a pointer to a struct")
 	}
 
 	infos := parseFields(v.Elem().Type(), nil)
 
-	for _, path := range opts.Paths {
-		if err := loadFile(path, opts.Dest); err != nil {
-			return err
+	read := make([]bool, len(opts.Paths))
+	for i, path := range opts.Paths {
+		found, err := loadFile(path, opts.Dest)
+		if err != nil {
+			return read, err
 		}
+		read[i] = found
 	}
 
 	dotEnv, err := parseDotEnvFiles(opts.DotEnvFiles)
 	if err != nil {
-		return err
+		return read, err
 	}
 
 	if err := applyEnv(infos, v, dotEnv); err != nil {
-		return err
+		return read, err
 	}
 
 	if err := applyDefaults(infos, v, dotEnv); err != nil {
-		return err
+		return read, err
 	}
 
-	return nil
+	return read, nil
 }

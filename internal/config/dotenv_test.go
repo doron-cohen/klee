@@ -18,7 +18,7 @@ type dotenvConfig struct {
 func mergeWithDotEnv(t *testing.T, dotenvPaths []string) (dotenvConfig, error) {
 	t.Helper()
 	var cfg dotenvConfig
-	err := internal.Merge(internal.MergeOptions{
+	_, err := internal.Merge(internal.MergeOptions{
 		Paths:       []string{"/nonexistent/klee-dotenv-test.yaml"},
 		DotEnvFiles: dotenvPaths,
 		Dest:        &cfg,
@@ -73,7 +73,7 @@ func TestDotEnvPrecedence(t *testing.T) {
 	t.Run("dotenv overrides yaml", func(t *testing.T) {
 		yamlPath := writeYAML(t, "host: fromyaml\n")
 		var cfg dotenvConfig
-		err := internal.Merge(internal.MergeOptions{
+		_, err := internal.Merge(internal.MergeOptions{
 			Paths:       []string{yamlPath},
 			DotEnvFiles: []string{"testdata/valid.env"},
 			Dest:        &cfg,

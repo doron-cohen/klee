@@ -55,15 +55,28 @@ secret:  — redacted in config print
 ```
 Doc strings via Go field comments, extracted via AST for doc generation.
 
-Precedence: flags → env vars → project file → user file → system file → defaults
+Precedence: flags → env vars → project file → user file → XDG config dirs → system file → defaults
 
 XDG paths for user/system files, driven by app name.
+
+The user file lives in the XDG config home. `SearchConfigDirs` additionally
+searches the secondary XDG config directories (`$XDG_CONFIG_DIRS`, or the
+platform defaults) beneath it. On darwin those include `~/.config`, which the
+config home does not — it resolves to `~/Library/Application Support` there.
+The config home always outranks them, so an explicit `XDG_CONFIG_HOME` still
+wins and an existing Application Support file keeps its precedence. Off by
+default, because switching it on can only make klee read a file it used to
+ignore.
 
 Validation opt-in:
 - implement `Validate() error` on config struct
 - or pass a validator option for struct tag validation
 
 Built-in commands: `config validate`, `config print`
+
+`config print` lists the candidate config files and which were read on stderr,
+leaving stdout as the config document alone. `config.LoadWithSources` returns
+the same information to apps that want to report it themselves.
 
 App composes package configs via embedding:
 ```go
