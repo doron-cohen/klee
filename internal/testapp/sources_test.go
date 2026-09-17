@@ -4,13 +4,9 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	adrgxdg "github.com/adrg/xdg"
-	"github.com/doron-cohen/klee"
-	"github.com/doron-cohen/klee/internal/testapp"
-	"github.com/doron-cohen/klee/kleetest"
 	"github.com/stretchr/testify/require"
 )
 
@@ -50,18 +46,6 @@ func fakeHome(t *testing.T) string {
 	t.Setenv("XDG_CONFIG_DIRS", "")
 	adrgxdg.Reload()
 	return home
-}
-
-// runConfigHomeOnly builds an app that opts out of the XDG config dirs.
-// The default case is covered by run, which passes no options at all.
-func runConfigHomeOnly(t *testing.T, args ...string) *kleetest.Result {
-	t.Helper()
-	app := testapp.NewApp()
-	require.NoError(t, app.LoadConfig(klee.ConfigOptions[testapp.Config]{
-		FlagArgs:          append([]string{"app"}, args...),
-		DisableConfigDirs: true,
-	}))
-	return kleetest.Run(t, app, args...)
 }
 
 func TestConfigPrintNamesSourcesWithNoFile(t *testing.T) {
@@ -111,18 +95,3 @@ func TestConfigPrintQuietOmitsSources(t *testing.T) {
 	require.NotContains(t, result.Stderr.String(), "config sources")
 }
 
-// An app that opts out still gets its narrower search path named, rather
-// than silently omitting the directories it chose not to look at.
-func TestConfigPrintSourcesWithConfigDirsDisabled(t *testing.T) {
-	home := fakeHome(t)
-
-	result := runConfigHomeOnly(t, "config", "print")
-	result.ExitCode.Equals(t, 0)
-
-	result.Stderr.Contains(t, "config sources")
-	result.Stderr.Contains(t, filepath.Join(adrgxdg.ConfigHome, "testapp", "config.yaml"))
-	if runtime.GOOS == "darwin" {
-		require.NotContains(t, result.Stderr.String(),
-			filepath.Join(home, ".config", "testapp", "config.yaml"))
-	}
-}

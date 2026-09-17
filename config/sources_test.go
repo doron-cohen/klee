@@ -32,7 +32,7 @@ func TestSourcesListEverySearchPath(t *testing.T) {
 	project := noProjectFile(t)
 
 	var cfg testConfig
-	sources, err := config.LoadWithSources(&cfg, config.Options{
+	sources, err := config.Load(&cfg, config.Options{
 		AppName:     "kleetest",
 		ProjectPath: project,
 	})
@@ -52,7 +52,7 @@ func TestSourcesMarkTheFileThatWasRead(t *testing.T) {
 	writeConfig(t, dotConfig, "host: dotconfig\n")
 
 	var cfg testConfig
-	sources, err := config.LoadWithSources(&cfg, config.Options{
+	sources, err := config.Load(&cfg, config.Options{
 		AppName:     "kleetest",
 		ProjectPath: noProjectFile(t),
 	})
@@ -61,23 +61,3 @@ func TestSourcesMarkTheFileThatWasRead(t *testing.T) {
 	require.Equal(t, []string{dotConfig}, loaded(sources))
 }
 
-// DisableConfigDirs reduces the search to exactly the three paths v0.2.2
-// looked at, which is the whole of what an app gives up by setting it.
-func TestDisableConfigDirsRestoresTheV022SearchPath(t *testing.T) {
-	fakeHome(t)
-	project := noProjectFile(t)
-
-	var cfg testConfig
-	sources, err := config.LoadWithSources(&cfg, config.Options{
-		AppName:           "kleetest",
-		ProjectPath:       project,
-		DisableConfigDirs: true,
-	})
-	require.NoError(t, err)
-
-	require.Equal(t, []string{
-		"/etc/kleetest/config.yaml",
-		filepath.Join(adrgxdg.ConfigHome, "kleetest", "config.yaml"),
-		project,
-	}, paths(sources))
-}

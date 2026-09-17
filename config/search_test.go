@@ -66,29 +66,13 @@ func TestDotConfigIsSearchedByDefault(t *testing.T) {
 	writeConfig(t, filepath.Join(home, ".config", "kleetest", "config.yaml"), "host: dotconfig\n")
 
 	var cfg testConfig
-	require.NoError(t, config.Load(&cfg, config.Options{
+	_, err := config.Load(&cfg, config.Options{
 		AppName:     "kleetest",
 		ProjectPath: noProjectFile(t),
-	}))
+	})
+	require.NoError(t, err)
 
 	require.Equal(t, "dotconfig", cfg.Host)
-}
-
-func TestDisableConfigDirsSearchesConfigHomeOnly(t *testing.T) {
-	if runtime.GOOS != "darwin" {
-		t.Skip("config home and ~/.config only differ on darwin")
-	}
-	home := fakeHome(t)
-	writeConfig(t, filepath.Join(home, ".config", "kleetest", "config.yaml"), "host: dotconfig\n")
-
-	var cfg testConfig
-	require.NoError(t, config.Load(&cfg, config.Options{
-		AppName:           "kleetest",
-		ProjectPath:       noProjectFile(t),
-		DisableConfigDirs: true,
-	}))
-
-	require.Equal(t, "localhost", cfg.Host)
 }
 
 // The secondary dirs are platform-specific but XDG_CONFIG_DIRS drives them
@@ -104,10 +88,11 @@ func TestConfigHomeWinsOverConfigDirs(t *testing.T) {
 	writeConfig(t, filepath.Join(primary, "kleetest", "config.yaml"), "host: primary\n")
 
 	var cfg testConfig
-	require.NoError(t, config.Load(&cfg, config.Options{
+	_, err := config.Load(&cfg, config.Options{
 		AppName:     "kleetest",
 		ProjectPath: noProjectFile(t),
-	}))
+	})
+	require.NoError(t, err)
 
 	require.Equal(t, "primary", cfg.Host)
 	require.Equal(t, 1111, cfg.Port, "keys the config home file omits still come from the secondary dir")
@@ -122,10 +107,11 @@ func TestConfigHomeWinsOverDotConfig(t *testing.T) {
 	writeConfig(t, filepath.Join(home, "Library", "Application Support", "kleetest", "config.yaml"), "host: apphome\n")
 
 	var cfg testConfig
-	require.NoError(t, config.Load(&cfg, config.Options{
+	_, err := config.Load(&cfg, config.Options{
 		AppName:     "kleetest",
 		ProjectPath: noProjectFile(t),
-	}))
+	})
+	require.NoError(t, err)
 
 	require.Equal(t, "apphome", cfg.Host)
 	require.Equal(t, 1111, cfg.Port, "keys the config home file omits still come from ~/.config")

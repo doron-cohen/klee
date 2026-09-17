@@ -66,11 +66,11 @@ resolves to `~/Library/Application Support` there. The config home always
 outranks them, so an explicit `XDG_CONFIG_HOME` wins and a file already at the
 config home keeps its precedence.
 
-`DisableConfigDirs` restricts the search to the config home. It exists because
-the secondary directories include machine-wide ones, which an app that must not
-take configuration from anyone with admin rights will want to skip. Keeping
-`~/.config` out of the search is not a reason to reach for it — that is the
-user's to control, via `$XDG_CONFIG_DIRS`.
+The secondary directories include machine-wide ones — on darwin
+`/Library/Application Support` and `/Library/Preferences`. An app that must not
+take configuration written by anyone with admin rights would need a way to skip
+them; none does today, so there is no switch for it. A user who wants a
+different set already has `$XDG_CONFIG_DIRS`.
 
 Validation opt-in:
 - implement `Validate() error` on config struct
@@ -79,8 +79,9 @@ Validation opt-in:
 Built-in commands: `config validate`, `config print`
 
 `config print` lists the candidate config files and which were read on stderr,
-leaving stdout as the config document alone. `config.LoadWithSources` returns
-the same information to apps that want to report it themselves.
+leaving stdout as the config document alone so `config print | yq` keeps
+working. `config.Load` returns the same list to apps that want to report it
+themselves.
 
 App composes package configs via embedding:
 ```go
