@@ -1,0 +1,19 @@
+errors_test.go
+  s_3e9a8454f22e7f::t_0a15a582c3eea4 38-74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "3b3c948dd35cc9144aedb418b87e539799753078",
+  "prompts": {},
+  "sessions": {
+    "s_3e9a8454f22e7f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "s_3e9a8454f22e7f",
+        "model": "unknown"
+      },
+      "human_author": "Doron Cohen <docohen@paloaltonetworks.com>"
+    }
+  }
+}
