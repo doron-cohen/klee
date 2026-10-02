@@ -1,0 +1,21 @@
+errors.go
+  s_0c171ff7d6a7f5::t_0c99f045b69127 4,14-15,31-32,38-39
+errors_test.go
+  s_0c171ff7d6a7f5::t_caf900cdcc66ab 1-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "5303991596442fffe9e3e3498401e3e2acfaaca2",
+  "prompts": {},
+  "sessions": {
+    "s_0c171ff7d6a7f5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "journal",
+        "model": "unknown"
+      },
+      "human_author": "Doron Cohen <docohen@paloaltonetworks.com>"
+    }
+  }
+}
