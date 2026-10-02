@@ -1,6 +1,7 @@
 package klee
 
 import (
+	"errors"
 	"fmt"
 
 	kleerrors "github.com/doron-cohen/klee/errors"
@@ -10,7 +11,8 @@ func exitCodeForError(err error) int {
 	if err == nil {
 		return 0
 	}
-	if k, ok := err.(kleerrors.Kinder); ok {
+	var k kleerrors.Kinder
+	if errors.As(err, &k) {
 		switch k.ErrorKind() {
 		case kleerrors.KindUser:
 			return 2
@@ -26,13 +28,15 @@ func exitCodeForError(err error) int {
 func renderError(err error, debug bool) string {
 	msg := err.Error()
 
-	if h, ok := err.(kleerrors.Hinter); ok {
+	var h kleerrors.Hinter
+	if errors.As(err, &h) {
 		if hint := h.Hint(); hint != "" {
 			msg += "\nHint: " + hint
 		}
 	}
 
-	if k, ok := err.(kleerrors.Kinder); ok {
+	var k kleerrors.Kinder
+	if errors.As(err, &k) {
 		if k.ErrorKind() == kleerrors.KindInternal && !debug {
 			msg += "\nRun with --debug for more details."
 		}
