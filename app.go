@@ -7,6 +7,7 @@ import (
 
 	"github.com/doron-cohen/klee/commands"
 	"github.com/doron-cohen/klee/config"
+	kleerrors "github.com/doron-cohen/klee/errors"
 	kleelog "github.com/doron-cohen/klee/log"
 	"github.com/doron-cohen/klee/version"
 	"github.com/urfave/cli/v3"
@@ -37,6 +38,9 @@ type App[T any] struct {
 	debug       bool
 	secretStore config.SecretStore
 	sources     []config.Source
+
+	exitCodes    map[kleerrors.Kind]int
+	exitMatchers []func(error) (int, bool)
 }
 
 // New creates a new App. Version defaults to version.String(), which
@@ -69,6 +73,27 @@ func (a *App[T]) WithUsage(usage string) *App[T] {
 // the secrets set subcommand is enabled.
 func (a *App[T]) WithSecretStore(s config.SecretStore) *App[T] {
 	a.secretStore = s
+	return a
+}
+
+// WithExitCodes maps error kinds to exit codes, overriding the defaults for
+// those kinds (including the built-in ones). Kinds not listed keep their
+// default code. Repeated calls merge, later entries win.
+func (a *App[T]) WithExitCodes(codes map[kleerrors.Kind]int) *App[T] {
+	if a.exitCodes == nil {
+		a.exitCodes = make(map[kleerrors.Kind]int, len(codes))
+	}
+	for k, c := range codes {
+		a.exitCodes[k] = c
+	}
+	return a
+}
+
+// WithExitMatcher registers a function consulted before the kind map and the
+// defaults. It receives the full (possibly wrapped) error; return ok=false to
+// defer. Matchers run in registration order and the first match wins.
+func (a *App[T]) WithExitMatcher(m func(err error) (code int, ok bool)) *App[T] {
+	a.exitMatchers = append(a.exitMatchers, m)
 	return a
 }
 
@@ -137,7 +162,7 @@ func (a *App[T]) Run(ctx context.Context, args []string) int {
 
 func (a *App[T]) report(err error) int {
 	fmt.Fprintln(os.Stderr, renderError(err, a.debug))
-	return exitCodeForError(err)
+	return a.exitCode(err)
 }
 
 func (a *App[T]) before(ctx context.Context, cmd *cli.Command) (context.Context, error) {

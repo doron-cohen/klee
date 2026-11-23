@@ -25,6 +25,28 @@ func exitCodeForError(err error) int {
 	return 1
 }
 
+// exitCode resolves the exit code for err: matchers first (in registration
+// order), then the kind map from WithExitCodes, then the built-in defaults.
+func (a *App[T]) exitCode(err error) int {
+	if err == nil {
+		return 0
+	}
+	for _, m := range a.exitMatchers {
+		if code, ok := m(err); ok {
+			return code
+		}
+	}
+	if len(a.exitCodes) > 0 {
+		var k kleerrors.Kinder
+		if errors.As(err, &k) {
+			if code, ok := a.exitCodes[k.ErrorKind()]; ok {
+				return code
+			}
+		}
+	}
+	return exitCodeForError(err)
+}
+
 func renderError(err error, debug bool) string {
 	msg := err.Error()
 
