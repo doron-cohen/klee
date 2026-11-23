@@ -78,3 +78,31 @@ func TestInternalKindWrappedAddsDebugHint(t *testing.T) {
 	require.Contains(t, renderError(err, false), "Run with --debug")
 	require.NotContains(t, renderError(err, true), "Run with --debug")
 }
+
+// TestDefaultExitCodesPinned guards the default kind-to-exit-code mapping.
+func TestDefaultExitCodesPinned(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want int
+	}{
+		{"nil", nil, 0},
+		{"plain", fmt.Errorf("x"), 1},
+		{"user", &kindErr{kind: kleerrors.KindUser}, 2},
+		{"internal", &kindErr{kind: kleerrors.KindInternal}, 3},
+		{"config", &kindErr{kind: kleerrors.KindConfig}, 4},
+		{"unknown kind", &kindErr{kind: kleerrors.Kind(99)}, 1},
+		{"wrapped user", fmt.Errorf("w: %w", &kindErr{kind: kleerrors.KindUser}), 2},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.want, exitCodeForError(tt.err))
+		})
+	}
+}
+
+func TestDefaultRenderingPinned(t *testing.T) {
+	require.Equal(t, "Error: boom\nHint: h", renderError(&kindErr{kind: kleerrors.KindUser, hint: "h"}, false))
+	require.Equal(t, "Error: boom\nRun with --debug for more details.", renderError(&kindErr{kind: kleerrors.KindInternal}, false))
+	require.Equal(t, "Error: boom", renderError(&kindErr{kind: kleerrors.KindConfig}, false))
+}
