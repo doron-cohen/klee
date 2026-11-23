@@ -30,6 +30,7 @@ Kinder — ErrorKind() Kind
 Hinter — Hint() string
 ```
 Kind constants: `KindUser`, `KindInternal`, `KindConfig`
+`CustomKind(n)` declares app-defined kinds (start at 1000, never collide with built-ins).
 
 Each package owns its error types and implements these interfaces.
 
@@ -40,7 +41,15 @@ CLI owns exit codes:
 3 = KindInternal
 4 = KindConfig
 ```
-Extensible via registered matchers.
+Extensible, opt-in; apps that register nothing keep the table above:
+```
+app.WithExitCodes(map[Kind]int{kindConflict: 3, KindConfig: 4}) // kind -> code, may override built-ins
+app.WithExitMatcher(func(err error) (int, bool) { ... })         // arbitrary match on the full error
+```
+Resolution order: matchers (registration order, first match wins), then the
+`WithExitCodes` map, then the defaults. Kinds and hints are read through
+`fmt.Errorf("%w")` chains as usual, so custom kinds work with `Hinter`.
+Rendering is unchanged: only `KindInternal` adds the `--debug` line.
 
 ---
 
